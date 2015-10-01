@@ -84,7 +84,6 @@ func resolveStampyInformation() {
 	stampyInfo.Name = "Stampy, Elephant in the room"
 	stampyInfo.Version = Version
 	stampyInfo.Os = fmt.Sprint(runtime.GOOS, "-", runtime.GOARCH)
-	stampyInfo.GoVersion = runtime.Version()
 	stampyInfo.CpuCores = runtime.NumCPU()
 	stampyInfo.StampyBucketCount = bucketsCount
 

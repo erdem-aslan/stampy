@@ -14,7 +14,6 @@ const DefaultBucketCount = 64
 type StampyInfo struct {
 	Name              string
 	Version           string
-	GoVersion         string
 	Os                string
 	CpuCores          int
 	MemoryUsage       string
@@ -28,8 +27,8 @@ func (s *StampyInfo) updateMemoryUsage(memoryUsage string) {
 }
 
 func (s StampyInfo) String() string {
-	return fmt.Sprintf("%s\n\tVersion: %s\n\tGo Version: %s\n\tOS: %s\n\tCpu Cores: %d\n\tMemory Usage: %s\n\tBuckets Count: %d\n\tStarted: %b",
-		s.Name, s.Version, s.GoVersion, s.Os, s.CpuCores, s.MemoryUsage, s.StampyBucketCount, s.Started)
+	return fmt.Sprintf("%s\n\tVersion: %s\n\tOS: %s\n\tCpu Cores: %d\n\tMemory Usage: %s\n\tBuckets Count: %d\n\tStarted: %b",
+		s.Name, s.Version, s.Os, s.CpuCores, s.MemoryUsage, s.StampyBucketCount, s.Started)
 }
 
 
