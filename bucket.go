@@ -100,14 +100,10 @@ func (s *StampyBucket) getValueWithKey(key string) (StampyBucketEntry, error) {
 
 	if !ok {
 		log.Println("Entry with key:", key, "not found.")
-		log.Println(s.stampyBucketStats.AbsentKeyHits)
 		return value, errors.New("Missing key")
 	}
 
-	log.Printf("Entry with key:%s found, %b", key, value)
-
 	return value, nil
-
 }
 
 func (s *StampyBucket) deleteValueWithKeyIfPresent(key string) {
@@ -118,7 +114,10 @@ func (s *StampyBucket) deleteValueWithKeyIfPresent(key string) {
 		s.cacheMutex.Lock()
 
 		delete(s.keyValueCache, key)
+		delete(s.ttlIndex, key)
+
 		s.stampyBucketStats.incrementKeyDeletes()
+
 		log.Println("Deleted key from cache:", key)
 
 		s.cacheMutex.Unlock()

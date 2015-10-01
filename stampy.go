@@ -239,6 +239,13 @@ func registerStampyHandlers() {
 
 			getBucket(key).putKeyWithValue(key, p.Payload, p.ValidUntil)
 			w.WriteHeader(http.StatusOK)
+
+		case "DELETE":
+			getBucket(key).deleteValueWithKeyIfPresent(key)
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+
 		}
 
 	})
