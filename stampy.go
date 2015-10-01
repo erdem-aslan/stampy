@@ -8,18 +8,22 @@ import (
 	"runtime"
 	"encoding/json"
 	"time"
+	"strings"
+	"hash/fnv"
+	"bytes"
 )
 
 const versionPath string = "/v1"
 const infoPath string = versionPath + "/info"
 const cachePath string = versionPath + "/cache"
-const cacheRootPath string = cacheRootPath + "/"
+const cacheRootPath string = cachePath + "/"
 const memoryDivider float32 = 1024
 
 var (
 	stampyInfo StampyInfo
 	m runtime.MemStats
-	cache StampyCache
+	buckets map[int]StampyBucket
+	bucketsCount int
 )
 
 
@@ -27,25 +31,42 @@ func main() {
 
 	log.SetPrefix("<Stampy> " + log.Prefix())
 
-	initializeStampyCache()
-	resolveStampyInformation()
-	registerStampyHandlers()
 
 	var ipFlag string
 	var portFlag int
 
 	flag.StringVar(&ipFlag, "ip", DefaultIp, "A valid IPv4 address for serving restful interface, ex: 127.0.0.1")
 	flag.IntVar(&portFlag, "port", DefaultPort, "An unoccupied port for serving restful interface")
+	flag.IntVar(&bucketsCount, "buckets", DefaultBucketCount, "Number of buckets for keys to be evenly distributed," +
+	"higher numbers will increase concurrency with a memory overhead")
 
 	flag.Parse()
+
+	initializeBuckets(bucketsCount)
+	resolveStampyInformation()
+	registerStampyHandlers()
+
 
 	log.Println("Stampy starting on", ipFlag, "with port", portFlag)
 	log.Fatal(http.ListenAndServe(ipFlag + ":" + fmt.Sprint(portFlag), nil))
 
 }
 
-func initializeStampyCache() {
-	cache.keyValueCache = make(map[string]StampyCacheEntry, 10000)
+func initializeBuckets(bucketCount int) {
+
+	buckets = make(map[int]StampyBucket, bucketCount)
+
+	for i := 0; i < bucketCount; i++ {
+
+		var bucket StampyBucket
+
+		bucket.keyValueCache = make(map[string]StampyBucketEntry)
+		bucket.ttlIndex = make(map[string]bool)
+		bucket.stampyBucketStats = &StampyBucketStats{0,0,0,0,0,0}
+
+		buckets[i] = bucket
+	}
+
 }
 
 func resolveStampyInformation() {
@@ -55,6 +76,7 @@ func resolveStampyInformation() {
 	stampyInfo.Os = fmt.Sprint(runtime.GOOS, "-", runtime.GOARCH)
 	stampyInfo.GoVersion = runtime.Version()
 	stampyInfo.CpuCores = runtime.NumCPU()
+	stampyInfo.StampyBucketCount = bucketsCount
 
 	memory, memoryUnit := resolveStampyMemoryUsage()
 
@@ -93,6 +115,13 @@ func resolveStampyMemoryUsage() (memory float32, memoryUnit string) {
 	return
 }
 
+func getBucket(key string) *StampyBucket {
+	hash := fnv.New32()
+	hash.Write([]byte(key))
+	s := buckets[int(hash.Sum32()) % int(bucketsCount)]
+	return &s
+}
+
 
 /**
 	Registers handlers for REST interface of Stampy the Mighty Elephant
@@ -105,7 +134,7 @@ func registerStampyHandlers() {
 		switch r.Method {
 
 		case "GET":
-			json, err := json.Marshal(stampyInfo)
+			payload, err := json.Marshal(stampyInfo)
 
 			if err != nil {
 				log.Println(err)
@@ -113,9 +142,12 @@ func registerStampyHandlers() {
 				return
 			}
 
+			var indented bytes.Buffer
+			json.Indent(&indented, payload,"", "\t")
+
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(200)
-			w.Write(json)
+			w.WriteHeader(http.StatusOK)
+			w.Write(indented.Bytes())
 
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
@@ -128,7 +160,52 @@ func registerStampyHandlers() {
 		switch r.Method {
 
 		case "GET":
-			json, err := json.Marshal(cache.stampyCacheStats)
+			var totalStats StampyBucketStats
+
+			for _, v := range buckets {
+				totalStats.KeyHits += v.stampyBucketStats.KeyHits
+				totalStats.AbsentKeyHits += v.stampyBucketStats.AbsentKeyHits
+				totalStats.ExpiredKeyHits += v.stampyBucketStats.ExpiredKeyHits
+				totalStats.KeyPuts += v.stampyBucketStats.KeyPuts
+				totalStats.KeyDeletes += v.stampyBucketStats.KeyDeletes
+				totalStats.ExpiredKeys += v.stampyBucketStats.ExpiredKeys
+			}
+
+			payload, err := json.Marshal(totalStats)
+
+			if err != nil {
+				log.Println(err)
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			var indented bytes.Buffer
+			json.Indent(&indented, payload,"", "\t")
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(indented.Bytes())
+
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	http.HandleFunc(cacheRootPath, func(w http.ResponseWriter, r *http.Request) {
+		key := strings.TrimPrefix(r.URL.Path, cacheRootPath)
+
+		switch r.Method {
+
+		case "GET":
+			entry, cacheError := getBucket(key).getValueWithKey(key)
+
+			if cacheError != nil {
+				// key is missing
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+
+			payload, err := json.Marshal(entry)
 
 			if err != nil {
 				log.Println(err)
@@ -137,18 +214,38 @@ func registerStampyHandlers() {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(200)
-			w.Write(json)
+			w.WriteHeader(http.StatusOK)
+			w.Write(payload)
 
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
+		case "PUT":
+
+			decoder := json.NewDecoder(r.Body)
+
+			var stampyPayload StampyPayload
+
+			decodingError := decoder.Decode(&stampyPayload)
+
+			if decodingError != nil {
+				log.Println("Failed to decode payload value from request, error:", decodingError)
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			log.Println(stampyPayload)
+
+
+			getBucket(key).putKeyWithValue(key, stampyPayload.payload, stampyPayload.validUntil)
+
+			w.WriteHeader(http.StatusOK)
 		}
-	})
-
-	http.HandleFunc(cacheRootPath, func(w http.ResponseWriter, r *http.Request) {
 
 	})
 
+}
+
+type StampyPayload struct {
+	payload    string
+	validUntil time.Time //ttl value
 }
 
 
