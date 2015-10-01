@@ -83,9 +83,9 @@ Precision is so overrated on date fields, thou they will be tuned eventually.
 
 A special case for deleting;
 
-Since stampy is a lazy-ass elephant, he cannot be sure if he has already eaten the key.
+Since stampy is a lazy-ass elephant, he cannot be sure if he has already deleted the key.
 
-So, 'DELETE' operations are idiom potent, key might be expired, cleanup up but Stampy tries to delete it and silently discard if key is missing.
+So, 'DELETE' operations are idiom potent, key might be expired, cleaned up but Stampy tries to delete it and silently discard if key is missing.
 
 ## Contributing
 
