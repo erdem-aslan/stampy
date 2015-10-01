@@ -12,7 +12,7 @@ Whats with the naming?
 
 Stampy, The Elephant In The Room ! (hint: Simpsons)
 
-![Stampy](stampy.jpg)
+![stampyImage](https://stash.telenity.com/users/erdema/repos/stampy/browse/stampy.jpg)
 
 Also, Elephants never forget...
 
