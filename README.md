@@ -8,13 +8,12 @@ Started as a pet project, ended up high performance, low footprint, non-heap nat
  - Builds/Runs on OSX, Linux, Windows
  - Written with GO
 
-Whats with the naming?
+#### Whats with the naming?
+Stampy, Elephant In The Room !
 
-Stampy, The Elephant In The Room ! (hint: Simpsons)
+(hint: Simpsons)
 
-![stampyImage](https://stash.telenity.com/users/erdema/repos/stampy/browse/stampy.jpg)
-
-Also, Elephants never forget...
+Also, Elephants never forget.
 
 ## Installation
 
