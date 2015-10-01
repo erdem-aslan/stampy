@@ -13,7 +13,8 @@ import (
 	"bytes"
 )
 
-const versionPath string = "/v1"
+const stampyPath string = "/stampy"
+const versionPath string = stampyPath + "/v1"
 const infoPath string = versionPath + "/info"
 const cachePath string = versionPath + "/cache"
 const cacheRootPath string = cachePath + "/"
@@ -37,8 +38,8 @@ func main() {
 
 	flag.StringVar(&ipFlag, "ip", DefaultIp, "A valid IPv4 address for serving restful interface, ex: 127.0.0.1")
 	flag.IntVar(&portFlag, "port", DefaultPort, "An unoccupied port for serving restful interface")
-	flag.IntVar(&bucketsCount, "buckets", DefaultBucketCount, "Number of buckets for keys to be evenly distributed," +
-	"higher numbers will increase concurrency with a memory overhead")
+	flag.IntVar(&bucketsCount, "buckets", DefaultBucketCount, "Number of buckets for keys to be evenly distributed, " +
+	"higher numbers will increase concurrency with additional memory overhead")
 
 	flag.Parse()
 

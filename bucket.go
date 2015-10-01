@@ -143,7 +143,7 @@ func (s *StampyBucket) deleteExpiredKeys() {
 }
 
 type StampyBucketEntry struct {
-	EntryValue   string `json:"value"`
+	EntryValue   string `json:"payload"`
 	CreationDate time.Time `json:"creationDate"`
 	LastAccessed time.Time `json:"lastAccessed"`
 	ValidUntil   time.Time `json:"validUntil"`
