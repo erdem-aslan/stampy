@@ -25,9 +25,9 @@ func (s *StampyBucket) putKeyWithValue(key string, value string, validUntil time
 	now := time.Now()
 	var cacheEntry StampyBucketEntry
 
-	cacheEntry.entryValue = value
-	cacheEntry.creationDate = now
-	cacheEntry.lastAccessed = now
+	cacheEntry.EntryValue = value
+	cacheEntry.CreationDate = now
+	cacheEntry.LastAccessed = now
 
 	log.Println("Putting/Updating entry for key:", key, "with value:", value)
 
@@ -37,7 +37,7 @@ func (s *StampyBucket) putKeyWithValue(key string, value string, validUntil time
 
 		s.ttlCacheMutex.Lock()
 
-		cacheEntry.validUntil = validUntil
+		cacheEntry.ValidUntil = validUntil
 		s.keyValueCache[key] = cacheEntry
 		s.ttlIndex[key] = true
 
@@ -66,7 +66,7 @@ func (s *StampyBucket) getValueWithKey(key string) (StampyBucketEntry, error) {
 
 		if ok {
 
-			if value.validUntil.Before(now) {
+			if value.ValidUntil.Before(now) {
 				// key valid but expired
 				s.stampyBucketStats.incrementExpiredKeyHits()
 				log.Println("Entry with key:", key, "has been expired.")
@@ -77,7 +77,7 @@ func (s *StampyBucket) getValueWithKey(key string) (StampyBucketEntry, error) {
 
 			// key valid
 			s.stampyBucketStats.incrementKeyHits()
-			value.lastAccessed = now
+			value.LastAccessed = now
 			return value, nil
 		}
 
@@ -127,19 +127,19 @@ func (s *StampyBucket) deleteValueWithKeyIfPresent(key string) {
 
 }
 type StampyBucketEntry struct {
-	entryValue   string
-	creationDate time.Time
-	lastAccessed time.Time
-	validUntil   time.Time
+	EntryValue   string `json:"value"`
+	CreationDate time.Time `json:"creationDate"`
+	LastAccessed time.Time `json:"lastAccessed"`
+	ValidUntil   time.Time `json:"validUntil"`
 }
 
 type StampyBucketStats struct {
-	KeyPuts        uint64
-	KeyDeletes     uint64
-	KeyHits        uint64
-	AbsentKeyHits  uint64
-	ExpiredKeys    uint64
-	ExpiredKeyHits uint64
+	KeyPuts        uint64 `json:"keyPuts"`
+	KeyDeletes     uint64 `json:"keyDeletes"`
+	KeyHits        uint64 `json:"keyHits"`
+	AbsentKeyHits  uint64 `json:"absentKeyHits"`
+	ExpiredKeys    uint64 `json:"expiredKeys"`
+	ExpiredKeyHits uint64 `json:"expiredKeyHits"`
 }
 
 func (stats *StampyBucketStats) incrementKeyPuts() {

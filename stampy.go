@@ -62,7 +62,7 @@ func initializeBuckets(bucketCount int) {
 
 		bucket.keyValueCache = make(map[string]StampyBucketEntry)
 		bucket.ttlIndex = make(map[string]bool)
-		bucket.stampyBucketStats = &StampyBucketStats{0,0,0,0,0,0}
+		bucket.stampyBucketStats = &StampyBucketStats{0, 0, 0, 0, 0, 0}
 
 		buckets[i] = bucket
 	}
@@ -143,7 +143,7 @@ func registerStampyHandlers() {
 			}
 
 			var indented bytes.Buffer
-			json.Indent(&indented, payload,"", "\t")
+			json.Indent(&indented, payload, "", "\t")
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -180,7 +180,7 @@ func registerStampyHandlers() {
 			}
 
 			var indented bytes.Buffer
-			json.Indent(&indented, payload,"", "\t")
+			json.Indent(&indented, payload, "", "\t")
 
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
@@ -221,21 +221,23 @@ func registerStampyHandlers() {
 
 			decoder := json.NewDecoder(r.Body)
 
-			var stampyPayload StampyPayload
+			var p StampyPayload
 
-			decodingError := decoder.Decode(&stampyPayload)
+			err := decoder.Decode(&p)
 
-			if decodingError != nil {
-				log.Println("Failed to decode payload value from request, error:", decodingError)
+			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
 
-			log.Println(stampyPayload)
+			log.Println(p.Payload)
 
+			if p.Payload == "" {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
 
-			getBucket(key).putKeyWithValue(key, stampyPayload.payload, stampyPayload.validUntil)
-
+			getBucket(key).putKeyWithValue(key, p.Payload, p.ValidUntil)
 			w.WriteHeader(http.StatusOK)
 		}
 
@@ -244,8 +246,8 @@ func registerStampyHandlers() {
 }
 
 type StampyPayload struct {
-	payload    string
-	validUntil time.Time //ttl value
+	Payload    string `json:"payload"`
+	ValidUntil time.Time `json:"validUntil"`
 }
 
 
