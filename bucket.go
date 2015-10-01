@@ -10,6 +10,7 @@ import (
 
 type StampyBucket struct {
 
+	bucketIndex       int
 	keyValueCache     map[string]StampyBucketEntry
 	ttlIndex          map[string]bool
 
@@ -122,9 +123,25 @@ func (s *StampyBucket) deleteValueWithKeyIfPresent(key string) {
 
 		s.cacheMutex.Unlock()
 	}
-
-
 }
+
+func (s *StampyBucket) deleteExpiredKeys() {
+
+
+	if len(s.ttlIndex) == 0 {
+		return
+	}
+
+	now := time.Now()
+
+	for i, _ := range s.ttlIndex {
+		if s.keyValueCache[i].ValidUntil.Before(now) {
+			s.deleteValueWithKeyIfPresent(i)
+			s.stampyBucketStats.incrementExpiredKeys()
+		}
+	}
+}
+
 type StampyBucketEntry struct {
 	EntryValue   string `json:"value"`
 	CreationDate time.Time `json:"creationDate"`

@@ -63,6 +63,16 @@ func initializeBuckets(bucketCount int) {
 		bucket.keyValueCache = make(map[string]StampyBucketEntry)
 		bucket.ttlIndex = make(map[string]bool)
 		bucket.stampyBucketStats = &StampyBucketStats{0, 0, 0, 0, 0, 0}
+		bucket.bucketIndex = i
+
+		ttlTimer := time.NewTicker(time.Minute)
+
+		go func() {
+			for {
+				<-ttlTimer.C
+				bucket.deleteExpiredKeys()
+			}
+		}()
 
 		buckets[i] = bucket
 	}
