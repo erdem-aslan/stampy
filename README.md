@@ -17,7 +17,7 @@ Also, Elephants never forget.
 
 ## Installation
 
-Grab the binary from below link (will be available soon) and execute it with 'stampy -help';
+Grab the binary from [Stampy Releases](http://1drv.ms/1P8dUKJ) and execute it with 'stampy -help';
 
     Usage of stampy:
       -buckets int
