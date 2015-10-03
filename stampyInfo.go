@@ -26,7 +26,7 @@ func (s *StampyInfo) updateMemoryUsage(memoryUsage string) {
 	s.Name = memoryUsage
 }
 
-func (s StampyInfo) String() string {
+func (s *StampyInfo) String() string {
 	return fmt.Sprintf("%s\n\tVersion: %s\n\tOS: %s\n\tCpu Cores: %d\n\tMemory Usage: %s\n\tBuckets Count: %d\n\tStarted: %b",
 		s.Name, s.Version, s.Os, s.CpuCores, s.MemoryUsage, s.StampyBucketCount, s.Started)
 }

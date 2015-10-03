@@ -21,24 +21,25 @@ type StampyBucket struct {
 }
 
 
-func (s *StampyBucket) putKeyWithValue(key string, value string, validUntil time.Time) {
+func (s *StampyBucket) processKeyViaRequest(key string, r *StampyCacheRequest) {
 
 	now := time.Now()
 	var cacheEntry StampyBucketEntry
 
-	cacheEntry.EntryValue = value
-	cacheEntry.CreationDate = now
-	cacheEntry.LastAccessed = now
+	cacheEntry.EntryValue = r.Value
+	cacheEntry.CreationTime = now
+	cacheEntry.LastAccessedTime = now
 
-	log.Println("Putting/Updating entry for key:", key, "with value:", value)
+	log.Println("Putting/Updating entry for key:", key, "with value:", r.Value)
 
-	if !validUntil.IsZero() {
+	if r.TimeToLive != 0 {
 
-		log.Println("TTL value has been provided, valid until: ", validUntil)
+		log.Println("TTL value has been provided, valid until: ", r.getExpiryDate())
 
 		s.ttlCacheMutex.Lock()
 
-		cacheEntry.ValidUntil = validUntil
+		cacheEntry.ExpiryTime = r.getExpiryDate()
+
 		s.keyValueCache[key] = cacheEntry
 		s.ttlIndex[key] = true
 
@@ -67,7 +68,7 @@ func (s *StampyBucket) getValueWithKey(key string) (StampyBucketEntry, error) {
 
 		if ok {
 
-			if value.ValidUntil.Before(now) {
+			if value.ExpiryTime.Before(now) {
 				// key valid but expired
 				s.stampyBucketStats.incrementExpiredKeyHits()
 				log.Println("Entry with key:", key, "has been expired.")
@@ -78,7 +79,7 @@ func (s *StampyBucket) getValueWithKey(key string) (StampyBucketEntry, error) {
 
 			// key valid
 			s.stampyBucketStats.incrementKeyHits()
-			value.LastAccessed = now
+			value.LastAccessedTime = now
 			return value, nil
 		}
 
@@ -135,46 +136,11 @@ func (s *StampyBucket) deleteExpiredKeys() {
 	now := time.Now()
 
 	for i, _ := range s.ttlIndex {
-		if s.keyValueCache[i].ValidUntil.Before(now) {
+		if s.keyValueCache[i].ExpiryTime.Before(now) {
 			s.deleteValueWithKeyIfPresent(i)
 			s.stampyBucketStats.incrementExpiredKeys()
 		}
 	}
 }
 
-type StampyBucketEntry struct {
-	EntryValue   string `json:"payload"`
-	CreationDate time.Time `json:"creationDate"`
-	LastAccessed time.Time `json:"lastAccessed"`
-	ValidUntil   time.Time `json:"validUntil"`
-}
-
-type StampyBucketStats struct {
-	KeyPuts        uint64 `json:"keyPuts"`
-	KeyDeletes     uint64 `json:"keyDeletes"`
-	KeyHits        uint64 `json:"keyHits"`
-	AbsentKeyHits  uint64 `json:"absentKeyHits"`
-	ExpiredKeys    uint64 `json:"expiredKeys"`
-	ExpiredKeyHits uint64 `json:"expiredKeyHits"`
-}
-
-func (stats *StampyBucketStats) incrementKeyPuts() {
-	stats.KeyPuts += 1
-}
-
-func (stats *StampyBucketStats) incrementKeyDeletes() {
-	stats.KeyDeletes += 1
-}
-func (stats *StampyBucketStats) incrementKeyHits() {
-	stats.KeyHits += 1
-}
-func (stats *StampyBucketStats) incrementAbsentKeyHits() {
-	stats.AbsentKeyHits += 1
-}
-func (stats *StampyBucketStats) incrementExpiredKeys() {
-	stats.ExpiredKeys += 1
-}
-func (stats *StampyBucketStats) incrementExpiredKeyHits() {
-	stats.ExpiredKeyHits += 1
-}
 

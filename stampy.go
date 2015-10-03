@@ -6,11 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"runtime"
-	"encoding/json"
 	"time"
-	"strings"
 	"hash/fnv"
-	"bytes"
 )
 
 const stampyPath string = "/stampy"
@@ -45,7 +42,10 @@ func main() {
 
 	initializeBuckets(bucketsCount)
 	resolveStampyInformation()
-	registerStampyHandlers()
+
+	resourceHandler := NewResourceHandler()
+
+	registerStampyHandlers(resourceHandler)
 
 
 	log.Println("Stampy starting on", ipFlag, "with port", portFlag)
@@ -113,12 +113,12 @@ func resolveStampyMemoryUsage() (memory float32, memoryUnit string) {
 	memory = float32(m.Alloc) / memoryDivider
 	memoryUnit = "kb"
 
-	if memory > 1024 {
-		memory = memory / float32(1024)
+	if memory > memoryDivider {
+		memory = memory / float32(memoryDivider)
 		memoryUnit = "mb"
 
-		if memory > 1024 {
-			memory = memory / float32(1024)
+		if memory > memoryDivider {
+			memory = memory / float32(memoryDivider)
 			memoryUnit = "gb"
 		}
 	}
@@ -133,139 +133,14 @@ func getBucket(key string) *StampyBucket {
 }
 
 
-/**
-	Registers handlers for REST interface of Stampy the Mighty Elephant
- */
-func registerStampyHandlers() {
+func registerStampyHandlers(resourceHandler *ResourceHandler) {
 
-
-	http.HandleFunc(infoPath, func(w http.ResponseWriter, r *http.Request) {
-
-		switch r.Method {
-
-		case "GET":
-			payload, err := json.Marshal(stampyInfo)
-
-			if err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			var indented bytes.Buffer
-			json.Indent(&indented, payload, "", "\t")
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(indented.Bytes())
-
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-
-	})
-
-	http.HandleFunc(cachePath, func(w http.ResponseWriter, r *http.Request) {
-
-		switch r.Method {
-
-		case "GET":
-			var totalStats StampyBucketStats
-
-			for _, v := range buckets {
-				totalStats.KeyHits += v.stampyBucketStats.KeyHits
-				totalStats.AbsentKeyHits += v.stampyBucketStats.AbsentKeyHits
-				totalStats.ExpiredKeyHits += v.stampyBucketStats.ExpiredKeyHits
-				totalStats.KeyPuts += v.stampyBucketStats.KeyPuts
-				totalStats.KeyDeletes += v.stampyBucketStats.KeyDeletes
-				totalStats.ExpiredKeys += v.stampyBucketStats.ExpiredKeys
-			}
-
-			payload, err := json.Marshal(totalStats)
-
-			if err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			var indented bytes.Buffer
-			json.Indent(&indented, payload, "", "\t")
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(indented.Bytes())
-
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-		}
-	})
-
-	http.HandleFunc(cacheRootPath, func(w http.ResponseWriter, r *http.Request) {
-		key := strings.TrimPrefix(r.URL.Path, cacheRootPath)
-
-		switch r.Method {
-
-		case "GET":
-			entry, cacheError := getBucket(key).getValueWithKey(key)
-
-			if cacheError != nil {
-				// key is missing
-				w.WriteHeader(http.StatusNotFound)
-				return
-			}
-
-			payload, err := json.Marshal(entry)
-
-			if err != nil {
-				log.Println(err)
-				w.WriteHeader(http.StatusInternalServerError)
-				return
-			}
-
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(payload)
-
-		case "PUT":
-
-			decoder := json.NewDecoder(r.Body)
-
-			var p StampyPayload
-
-			err := decoder.Decode(&p)
-
-			if err != nil {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			log.Println(p.Payload)
-
-			if p.Payload == "" {
-				w.WriteHeader(http.StatusBadRequest)
-				return
-			}
-
-			getBucket(key).putKeyWithValue(key, p.Payload, p.ValidUntil)
-			w.WriteHeader(http.StatusOK)
-
-		case "DELETE":
-			getBucket(key).deleteValueWithKeyIfPresent(key)
-			w.WriteHeader(http.StatusOK)
-		default:
-			w.WriteHeader(http.StatusMethodNotAllowed)
-
-		}
-
-	})
+	http.HandleFunc(infoPath, resourceHandler.infoHandler)
+	http.HandleFunc(cachePath, resourceHandler.statsHandler)
+	http.HandleFunc(cacheRootPath, resourceHandler.cacheHandler)
 
 }
 
-type StampyPayload struct {
-	Payload    string `json:"payload"`
-	ValidUntil time.Time `json:"validUntil"`
-}
 
 
 
