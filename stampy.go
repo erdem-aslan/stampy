@@ -10,7 +10,6 @@ import (
 	"hash/fnv"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"os"
 )
 
 const stampyPath string = "/stampy"

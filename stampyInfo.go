@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const Version string = "0.0.1-alpha"
+const Version string = "0.0.1"
 const DefaultPort int = 4000
 const DefaultIp string = "0.0.0.0"
 const DefaultBucketCount = 64

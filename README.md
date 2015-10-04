@@ -17,21 +17,27 @@ Also, Elephants never forget.
 
 ## Installation
 
-Grab the binary from [Stampy Releases](http://1drv.ms/1P8dUKJ) and execute it with 'stampy -help';
-
-    Usage of stampy:
-      -buckets int
-        	Number of buckets for keys to be evenly distributed, higher numbers will increase concurrency with a memory overhead (default 64)
-      -ip string
-        	A valid IPv4 address for serving restful interface, ex: 127.0.0.1 (default "0.0.0.0")
-      -port int
-        	An unoccupied port for serving restful interface (default 4000)
-
-Executing without providing any parameter is sufficient for stampy, it'll just run with its default configuration.
+Grab the binary from [Stampy Releases](http://1drv.ms/1P8dUKJ) for your target architecture.
 
 ## Usage
 
-Stampy exposes only one type of interface which is HTTP/RESTful access.
+stampy -help;
+
+    Usage of stampy:
+      -buckets int
+            Number of buckets for keys to be evenly distributed, higher numbers will increase concurrency with additional memory overhead (default 64)
+      -configFile string
+            All options are also configurable via config file in YAML format.
+      -ip string
+            A valid IPv4 address for serving restful interface, ex: 127.0.0.1 (default "0.0.0.0")
+      -port int
+            An unoccupied port for serving restful interface (default 4000)
+Executing without providing any parameter is sufficient for stampy, it'll just run with its default configuration. You can also provide a configuration file written in YAML format.
+
+
+## Interfaces
+
+Stampy exposes only one (for now, at least) type of interface which is HTTP/RESTful access.
 
 Methods and their effects on paths:
 
@@ -40,31 +46,35 @@ Methods and their effects on paths:
 
         resource: /stampy/v1/info
 
-    {
-    	"Name": "Stampy, Elephant in the room",
-    	"Version": "0.0.1-alpha",
-    	"Os": "darwin-amd64",
-    	"CpuCores": 8,
-    	"MemoryUsage": "214.55 kb",
-    	"StampyBucketCount": 64,
-    	"Started": "2015-10-02T00:33:27.264431875+03:00"
-    }
+            {
+                "Name": "Stampy, Elephant in the room",
+                "Version": "0.0.1",
+                "Os": "darwin-amd64",
+                "CpuCores": 8,
+                "MemoryUsage": "214.55 kb",
+                "StampyBucketCount": 64,
+                "Started": "2015-10-02T00:33:27.264431875+03:00"
+            }
 
         resource: /stampy/v1/cache
-    {
-    	"keyPuts": 0,
-    	"keyDeletes": 0,
-    	"keyHits": 0,
-    	"absentKeyHits": 0,
-    	"expiredKeys": 0,
-    	"expiredKeyHits": 0
-    }
+
+            {
+                "keyPuts": 0,
+                "keyDeletes": 0,
+                "keyHits": 0,
+                "absentKeyHits": 0,
+                "expiredKeys": 0,
+                "expiredKeyHits": 0
+            }
 
         resource: /stampy/v1/cache/{key}
-    {"payload":"any kind of stringified payload",
-     "creationDate":"2015-10-02T00:46:54.062119404+03:00",
-     "lastAccessed":"2015-10-02T00:47:17.335877637+03:00",
-     "validUntil":"2015-11-01T18:04:59.723630823+03:00"}
+
+            {
+                "value":"123123",
+                "creationDate":"2015-10-04T18:35:44.954754704+03:00",
+                "lastAccessed":"2015-10-04T18:37:12.277701533+03:00",
+                "expiryTime":"2015-10-04T18:41:44.956127762+03:00"
+            }
 
 Precision is so overrated on date fields, thou they will be tuned eventually.
 
@@ -72,8 +82,8 @@ Precision is so overrated on date fields, thou they will be tuned eventually.
 
 
         resource :  /stampy/v1/cache/{key}
-        json body:  {"payload","any kind of stringified payload"} // permanent key.value
-                    {"payload","any kind of stringified payload", "validUntil":"2015-10-02T00:46:54.062119404+03:00"} // with ttl
+        json body:  {"value":"123123"} // permanent key.value
+                    {"value":"123123", "timeToLive":360} // with ttl in seconds
 
 
 - DELETE
@@ -97,7 +107,13 @@ So, 'DELETE' operations are idiom potent, key might be expired, cleaned up but S
 
 ## History
 
-Released 0.0.1-alpha [2015/2/10]
+  - Released 0.0.1          [2015/4/10] :
+
+  Refactoring, changes on REST interface payloads and YAML Configuration support
+
+  - Released 0.0.1-alpha    [2015/2/10] :
+
+  Initial working prototype
 
 ## Credits
 
