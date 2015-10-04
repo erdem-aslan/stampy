@@ -8,6 +8,9 @@ import (
 	"runtime"
 	"time"
 	"hash/fnv"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"os"
 )
 
 const stampyPath string = "/stampy"
@@ -21,7 +24,7 @@ var (
 	stampyInfo StampyInfo
 	m runtime.MemStats
 	buckets map[int]StampyBucket
-	bucketsCount int
+	config StampyConfig
 )
 
 
@@ -30,17 +33,28 @@ func main() {
 	log.SetPrefix("<Stampy> " + log.Prefix())
 
 
+
 	var ipFlag string
 	var portFlag int
+	var bucketsCount int
+	var configFilePath string
 
 	flag.StringVar(&ipFlag, "ip", DefaultIp, "A valid IPv4 address for serving restful interface, ex: 127.0.0.1")
 	flag.IntVar(&portFlag, "port", DefaultPort, "An unoccupied port for serving restful interface")
 	flag.IntVar(&bucketsCount, "buckets", DefaultBucketCount, "Number of buckets for keys to be evenly distributed, " +
 	"higher numbers will increase concurrency with additional memory overhead")
 
+	flag.StringVar(&configFilePath, "configFile", "", "All options are also configurable via config file in YAML format.")
+
 	flag.Parse()
 
-	initializeBuckets(bucketsCount)
+	if configFilePath != "" {
+		config = loadConfiguration(configFilePath)
+	} else {
+		config = StampyConfig{bucketsCount, ipFlag, portFlag}
+	}
+
+	initializeBuckets(config.Buckets)
 	resolveStampyInformation()
 
 	resourceHandler := NewResourceHandler()
@@ -51,6 +65,29 @@ func main() {
 	log.Println("Stampy starting on", ipFlag, "with port", portFlag)
 	log.Fatal(http.ListenAndServe(ipFlag + ":" + fmt.Sprint(portFlag), nil))
 
+}
+
+func loadConfiguration(configFilePath string) StampyConfig {
+
+	file, err := ioutil.ReadFile(configFilePath)
+
+
+	if err != nil {
+		log.Fatalln(err)
+
+	}
+
+	var config StampyConfig
+
+	yamlError := yaml.Unmarshal(file, &config)
+
+	if yamlError != nil {
+		log.Fatalln(yamlError)
+	}
+
+	log.Printf("Configuration: %v\n", config)
+
+	return config
 }
 
 func initializeBuckets(bucketCount int) {
@@ -86,7 +123,7 @@ func resolveStampyInformation() {
 	stampyInfo.Version = Version
 	stampyInfo.Os = fmt.Sprint(runtime.GOOS, "-", runtime.GOARCH)
 	stampyInfo.CpuCores = runtime.NumCPU()
-	stampyInfo.StampyBucketCount = bucketsCount
+	stampyInfo.StampyBucketCount = config.Buckets
 
 	memory, memoryUnit := resolveStampyMemoryUsage()
 
@@ -128,7 +165,7 @@ func resolveStampyMemoryUsage() (memory float32, memoryUnit string) {
 func getBucket(key string) *StampyBucket {
 	hash := fnv.New32()
 	hash.Write([]byte(key))
-	s := buckets[int(hash.Sum32()) % int(bucketsCount)]
+	s := buckets[int(hash.Sum32()) % int(config.Buckets)]
 	return &s
 }
 
