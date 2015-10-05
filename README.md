@@ -17,7 +17,22 @@ Also, Elephants never forget.
 
 ## Installation
 
-Grab the binary from [Stampy Releases](http://1drv.ms/1P8dUKJ) for your target architecture.
+Grab the binary from below links depending on your OS/Architecture;
+
+- Osx:
+
+[Latest - Development Branch](http://mersin.telenity.com/repo/stampy/develop/osx/latest/stampy)
+- Linux 32bit:
+
+[Latest - Development Branch](http://mersin.telenity.com/repo/stampy/develop/linux-32bit/latest/stampy)
+- Linux 64bit:
+
+[Latest - Development Branch](http://mersin.telenity.com/repo/stampy/develop/linux-64bit/latest/stampy)
+- Windows 64bit:
+
+[Latest - Development Branch](http://mersin.telenity.com/repo/stampy/develop/windows-64bit/latest/stampy)
+
+For older builds: [Stampy repo](http://mersin.telenity.com/repo/stampy/develop/)
 
 ## Usage
 
